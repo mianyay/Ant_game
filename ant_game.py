@@ -46,11 +46,12 @@ rain = []
 puddles = []
 big_puddles = []
 puddle_timer = 0
+story_fade = 0 
 level_index = 0
 score = 0
 time_left = 0
 spawn_timer = 0
-state = "intro" # there are "intro", "playing", "level_complete", "won", "lost", and "drowned" states
+state = "intro" # there are "story", "intro", "playing", "level_complete", "won", "lost", and "drowned" states
 
 introText = ("""Your home is approaching a massive rainstorm. Your massive underground chambers 
 will flood unless the ants gather enough resources to survive the rainstorm.
@@ -102,6 +103,11 @@ def add_item():
             break
     items.append(item)
 
+def start_story():
+    global state, story_fade
+    story_fade = 0
+    state = "story"
+
 def start_level():
     global score, time_left, spawn_timer, puddle_timer, state, LEVEL, level
     ant.angle = 0
@@ -134,7 +140,10 @@ def on_key_down(key):
 
     if state == "intro":
         if key == keys.SPACE:
-            start_level()
+            start_story()
+    elif state == "story":
+        if key == keys.SPACE:
+            start_level() 
 
     elif state != "playing" and key == keys.SPACE:
         if state == "level_complete":
@@ -151,7 +160,7 @@ def on_key_down(key):
 def on_mouse_down(pos):
     if state == "intro":
         if play_button.collidepoint(pos):
-            start_level()
+            start_story()
         elif quit_button.collidepoint(pos):
             sys.exit()
 
@@ -168,8 +177,12 @@ def on_mouse_move(pos):
             quit_button.image = "quit_button"
 
 def update(secs): #secs = time since the last frme
-    global score, time_left, spawn_timer, state, LEVEL, level_index, puddle_timer
+    global score, time_left, spawn_timer, state, LEVEL, level_index, puddle_timer, story_fade
 
+    if state == "story":
+        story_fade = min(1, story_fade + secs / 1) 
+        return
+    
     if state != "playing":
         return
 
@@ -255,12 +268,20 @@ def draw():
     if state == "intro":
         screen.blit("bg_intro", (0, 0))
         screen.blit("title", (60, 50))
-        screen.draw.text(introText, center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=12, fontname=FONT)
 
         play_button.draw()
         quit_button.draw()
         return
 
+    if state == "story":
+        screen.blit("bg_intro", (0, 0))
+        screen.draw.text(introText, center=(WIDTH // 2, HEIGHT // 2), color="white",
+                         fontsize=12, fontname=FONT, alpha=story_fade)
+        if story_fade >= 1:
+            screen.draw.text("PRESS THE SPACE BAR TO BEGIN", midbottom=(WIDTH // 2, HEIGHT - 30),
+                             color="white", fontsize=16, fontname=FONT)
+        return
+    
     if state == "playing":
         screen.blit("bg", (0, 0))
 
@@ -278,17 +299,19 @@ def draw():
         screen.blit("raindrop", (drop[0], drop[1]))
 
     level = LEVEL[level_index]
-    screen.draw.text(f"Level {level_index + 1}: {level['levels']}", (10, 5), color="white", fontsize=24, fontname=FONT)
-    screen.draw.text(f"Collected: {score}/{level['target']} Time: {int(time_left)}", (10, 30), color="white", fontsize=24, fontname=FONT)
+    screen.draw.text(f"Level {level_index + 1}: {level['levels']}", (10, 5), color="white", fontsize=15, fontname=FONT)
+    screen.draw.text(f"Collected: {score}/{level['target']} Time: {int(time_left)}", (10, 30), color="white", fontsize=15, fontname=FONT)
 
     if state == "level_complete":
-        screen.draw.text("Level complete! Press the SPACE bar for the next level", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=24, fontname=FONT)
+        screen.draw.text("Level complete! Press the SPACE bar for the next level", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=18, fontname=FONT)
     elif state == "won":
-        screen.draw.text("Your ant colony has survived! Press the SPACE bar to replay", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=24, fontname=FONT)
+        screen.draw.text("Your ant colony has survived! Press the SPACE bar to replay", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
     elif state == "lost":
-        screen.draw.text("Time is up! The rain is coming and the colony will be flooded. Press the SPACE bar to retry.", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=24, fontname=FONT)
+        screen.draw.text("""Time is up! The rain is coming and the colony will be flooded. 
+        Press the SPACE bar to retry.""", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
     elif state == "drowned":
-        screen.draw.text("Ants are unable to swim in large puddles! The ant has drowned. Press the SPACE bar to restart the level.", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=24, fontname=FONT)
+        screen.draw.text("""Ants are unable to swim in large puddles! The ant has drowned. 
+        Press the SPACE bar to restart the level.""", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
 
 # runs everything
 pgzrun.go()
