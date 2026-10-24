@@ -1,8 +1,10 @@
+# Little Harvester Ant: The Great Flood
 import pgzrun
 import pygame
 import random
 from pgzero.actor import Actor
 from pgzero.keyboard import keys
+import sys
 
 # create constants
 WIDTH = 760
@@ -14,11 +16,11 @@ num_squares_height = HEIGHT // square
 # Level settings
 
 LEVEL = [
-     {"levels": "Gather food for the larvae", "time": 60, "target": 20,
-     "images": ["seed", "dead_insect", "fruit", "leaf"]},
-    {"levels": "Collect sticky tree resin", "time": 45, "target": 15,
+     {"levels": "Emergency Stockpile Rush", "time": 60, "target": 20,
+     "images": ["seed", "dead_insect", "dead_insect1", "fruit", "leaf"]},
+    {"levels": "Deep Lockdown", "time": 45, "target": 15,
      "images": ["resin1", "resin2"]},
-    {"levels": "Block the nest entrance", "time": 35, "target": 10,
+    {"levels": "The Final Seal", "time": 20, "target": 10,
      "images": ["pebble", "dirt", "sand"]},
 ]
 
@@ -36,12 +38,24 @@ level_index = 0
 score = 0
 time_left = 0
 spawn_timer = 0
-state = "playing" # there are "playing", "level_complete", "won", and "lost" states
+state = "intro" # there are "intro", "playing", "level_complete", "won", and "lost" states
+
+introText = ("""Your home is approaching a massive rainstorm. Your massive underground chambers will flood unless the ants gather enough resources to survive the rainstorm.
+The resources are the following: seeds, pebbles, dirt, sand, tree resin, fruit and leaves.
+Your colony will survive by using food, waterproofing your nursery and blocking off the entrance to the chambers from floods.
+It won’t be easy; you’re just a little ant."""
+)
+
+play_button = Actor("play_button")
+play_button.center = (WIDTH // 2, 355)
+
+quit_button = Actor("quit_button")
+quit_button.center = (WIDTH // 2, 420)
 
 def add_item():
     global LEVEL
     level = LEVEL[level_index]
-    item = actor(random.choice(level["images"]), 24)
+    item = actor(random.choice(level["images"]), 88)
     item.top = random.randint(0, num_squares_height - 1) * square
     item.left = random.randint(0, num_squares_width - 1) * square
     items.append(item)
@@ -65,9 +79,12 @@ def ant_size():
 
 # manage key controls
 def on_key_down(key):
-    global level_index
+    global level_index, state
 
-    if state == "playing":
+    if state == "intro":
+        if key == keys.SPACE:
+            start_level()
+    elif state == "playing":
         # down up left right
         if key == keys.DOWN or key == keys.S:
             ant.bottom += square
@@ -91,7 +108,26 @@ def on_key_down(key):
             start_level() # allows a retry of the same level :)
         elif state == "won":
             level_index = 0
-            start_level() # whole game restarts
+            state = "intro" # goes back to the intro screen
+
+def on_mouse_down(pos):
+    if state == "intro":
+        if play_button.collidepoint(pos):
+            start_level()
+        elif quit_button.collidepoint(pos):
+            sys.exit()
+
+def on_mouse_move(pos):
+    if state == "intro":
+        if play_button.collidepoint(pos):
+            play_button.image = "play_button_hover" 
+        else:
+            play_button.image = "play_button"
+
+        if quit_button.collidepoint(pos):
+            quit_button.image = "quit_button_hover" 
+        else:
+            quit_button.image = "quit_button"
 
 def update(secs):
     global score, time_left, spawn_timer, state, LEVEL, level_index
@@ -128,6 +164,16 @@ def update(secs):
             add_item()
 
 def draw():
+     
+    if state == "intro":
+        screen.blit("bg_intro", (0, 0))
+        screen.blit("title", (WIDTH // 2 - 200, 10))
+        screen.draw.text(introText, center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=12)
+
+        play_button.draw()
+        quit_button.draw()
+        return
+
     screen.fill("black") # will change this to a proper background later
 
     for item in items:
@@ -146,5 +192,4 @@ def draw():
         screen.draw.text("Time is up! The rain is coming and the colony will be flooded. Press the SPACE bar to retry.", center=(WIDTH // 2, HEIGHT // 2), color="red", fontsize=36)
 
 # runs everything
-start_level()
 pgzrun.go()
