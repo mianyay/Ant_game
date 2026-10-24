@@ -13,11 +13,11 @@ num_squares_height = HEIGHT // square
 # Level settings
 
 LEVEL = [
-     {"level_1": "Gather food for the larvae", "time": 60, "target": 50,
+     {"levels": "Gather food for the larvae", "time": 60, "target": 50,
      "images": ["seed", "dead_insect", "fruit", "leaf"]},
-    {"level_2": "Collect sticky tree resin", "time": 45, "target": 25,
+    {"levels": "Collect sticky tree resin", "time": 45, "target": 25,
      "images": ["resin1", "resin2"]},
-    {"level_3": "Block the nest entrance", "time": 35, "target": 10,
+    {"levels": "Block the nest entrance", "time": 35, "target": 10,
      "images": ["pebble", "dirt", "sand"]},
 ]
 
@@ -34,8 +34,8 @@ def add_item():
     global LEVEL
     level = LEVEL[level_index]
     item = Actor(random.choice(level["images"]))
-    item.top = random.randint(0, num_squares_height - 1) * square
-    item.left = random.randint(0, num_squares_width - 1) * square
+    item.top = random.randint(0, num_squares_height - 2) * square
+    item.left = random.randint(0, num_squares_width - 2) * square
     items.append(item)
 
 def start_level():
@@ -115,22 +115,23 @@ def update(secs):
             add_item()
 
 def draw():
-    global LEVEL, level
     screen.fill("black") # will change this to a proper background later
 
     for item in items:
         item.draw()
     ant.draw()
 
-    level = LEVEL[level.index]
-    screen.draw.text(f"Level {level_index + 1}: {level['name']}, (10, 5)", color="white", fontsize=24)
+    level = LEVEL[level_index]
+    screen.draw.text(f"Level {level_index + 1}: {level['levels']}", (10, 5), color="white", fontsize=24)
     screen.draw.text(f"Collected: {score}/{level['target']} Time: {int(time_left)}", (10, 30), color="yellow", fontsize=24)
 
     if state == "level_complete":
         screen.draw.text("Level complete! Press the SPACE bar for the next level", center=(WIDTH // 2, HEIGHT // 2), color="blue", fontsize=36)
     elif state == "won":
-        screen.draw.text("Your ant colony has survived! Press the SPACE bar to replay", center=("WIDTH // 2, HEIGHT // 2"), color="green", fontsize=36)
+        screen.draw.text("Your ant colony has survived! Press the SPACE bar to replay", center=(WIDTH // 2, HEIGHT // 2), color="green", fontsize=36)
     elif state == "lost":
         screen.draw.text("Time is up! The rain is coming and the colony will be flooded. Press the SPACE bar to retry.", center=(WIDTH // 2, HEIGHT // 2), color="red", fontsize=36)
+
 # runs everything
+start_level()
 pgzrun.go()
