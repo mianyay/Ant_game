@@ -1,5 +1,5 @@
 # Little Harvester Ant: The Great Flood
-You’re an harvester ant who collects things.
+You’re a harvester ant who collects things.
 
 ## Live demo
 
