@@ -7,7 +7,7 @@ You’re a harvester ant who collects things.
 Little Harvester Ant: The Great Flood is a timed-collect-a-thon game where you follow in the shoes of a harvester ant facing their Rainstorm. You have to help your colony survive by foraging resources before the great floods happens.
 Goal: Survive the rainstorm.
 Objective: Collect materials and resources before time runs out... And don’t die.
-You play by using wysd or arrow keys to move your ant and collect a variety of items. However, a little guy like you is highly susceptible to environmental dangers. So watch out! Find out whenever you’d survive as a smol ant.
+You play by using WASD or arrow keys to move your ant and collect a variety of items. However, a little guy like you is highly susceptible to environmental dangers. So watch out! Find out whenever you’d survive as a smol ant.
 Note: First ever hack jam project everrrrrrrr. We hope you enjoyed it! Pls leave comments for feedback for our next project.
 
 ## Features
