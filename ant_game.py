@@ -6,12 +6,12 @@ from pgzero.actor import Actor
 from pgzero.keyboard import keys
 import sys
 
-# create constants
+# constants
 WIDTH = 760
 HEIGHT = 480
-square = 32
-num_squares_width = WIDTH // square
-num_squares_height = HEIGHT // square
+SQUARE = 32
+num_squares_width = WIDTH // SQUARE
+num_squares_height = HEIGHT // SQUARE
 ANT_SPEED = 150
 FONT = "silkscreen"
 PUDDLE_SLOW = 0.1
@@ -19,20 +19,28 @@ SMALL_PUDDLE = 42
 BIG_PUDDLE = 124
 DROWN_PIXEL = 40
 
+overlay = pygame.Surface((WIDTH, HEIGHT))
+overlay.fill((0, 0, 0))
+overlay.set_alpha(150)   #
+
+def overlay_screen():
+    screen.surface.blit(overlay, (0, 0))
+
 # Level settings
 
 LEVEL = [
      {"levels": "Emergency Stockpile Rush", "time": 60, "target": 20,
      "images": ["seed", "dead_insect", "dead_insect1", "fruit", "leaf"],
-     "rain": 30, "slow": 0.8, "puddles": 3, "big": 2, "music": "level1_music", "rain_sound": "rain_1"},
+     "rain": 30, "slow": 0.8, "puddles": 3, "big": 2, "music": "level1_music", "rain_sound": "rain_1", "level_complete": "Level completed. \nYou and your best buddies managed to carry in \nthe last bit of seeds before the rain suddenly increased. \nYou contributed to the pool of food to feed the colony for \ndays and look after the larvaes. \nSPACE bar for next level", 
+     "fail": "One of your leg got trapped in a sticky \npatch of mud and one of your fellow ant had to take your place. \nEvery ant rushed into the anthill for shelter, \nbut you were unfortunately left behind. \nYou drown under the rain. \nSPACE bar to retry"},
     {"levels": "Deep Lockdown", "time": 45, "target": 15,
      "images": ["resin1", "resin2"],
-     "rain": 80, "slow": 0.6, "puddles": 4, "big": 3, "music": "level2_music", "rain_sound": "rain_2"},
+     "rain": 80, "slow": 0.6, "puddles": 4, "big": 3, "music": "level2_music", "rain_sound": "rain_2", "level_complete": "Level completed. \nAll the tree resin your colony has gathered were used to block the underground \nchambers of your home; essentially waterproofing so water couldn’t get in.\nSPACE bar for next level", 
+     "fail": "You couldn’t get enough resin in time. \n You can only hope your queen and her babies live on to the next day. \nYou died.\n SPACE bar to retry"},
     {"levels": "The Final Seal", "time": 20, "target": 10,
      "images": ["pebble", "dirt", "sand"],
-     "rain": 160, "slow": 0.4, "puddles": 5, "big": 4, "music": "level3_music", "rain_sound": "rain_3"},
+     "rain": 160, "slow": 0.4, "puddles": 5, "big": 4, "music": "level3_music", "rain_sound": "rain_3", "fail": "With all the dirt gathered to the best\n of your family’s abilities, the main entrance was blocked off. \nHowever in just 24 hours, you find the walls of your home soaked wet. \nSoon enough every ants around you were submerged in water. \nIt wasn’t enough time to form an emergency raft to float ontop of the flood or evacuate. \nPerhaps little guys are still little after all. \nSPACE bar to retry"}
 ]
-
 # resizes the sprites to a good size
 def actor(name, size=32):
     actor = Actor(name)
@@ -76,7 +84,7 @@ def rainfall(amount):
     for i in range(amount):
         rain.append([random.randint(0, WIDTH), random.randint(0, HEIGHT), random.randint(300, 500)])
 
-def spot(place):
+def safety_spot(place):
     #spot that isnt near/where the ant is
     safe_zone = pygame.Rect(ant.left - 60, ant.top - 60, ant.width + 120, ant.height + 120)
     for attempt in range(50):
@@ -98,7 +106,7 @@ def water_ant(puddle):
 def add_puddle(image, size, group):
     puddle = actor(image, size)
     puddle.mask = pygame.mask.from_surface(puddle._surf, 100)
-    spot(puddle)
+    safety_spot(puddle)
     group.append(puddle)
 
 def add_item():
@@ -107,8 +115,8 @@ def add_item():
     item = actor(random.choice(level["images"]), 40)
 
     for attempt in range(30):
-        item.top = random.randint(0, num_squares_height - 1) * square
-        item.left = random.randint(0, num_squares_width - 1) * square
+        item.top = random.randint(0, num_squares_height - 1) * SQUARE
+        item.left = random.randint(0, num_squares_width - 1) * SQUARE
         if not any(item.colliderect(big) for big in big_puddles):
             break
     items.append(item)
@@ -134,7 +142,11 @@ def update_music():
 
 def update_rain_sound():
     global current_rain
-    rainy = LEVEL[level_index]["rain_sound"] if state == "playing" else None
+
+    if state == "playing":
+        rainy = LEVEL[level_index]["rain_sound"]
+    else:
+        rainy = None
     if rainy == current_rain:
         return
     if current_rain is not None:
@@ -352,8 +364,7 @@ def draw():
                              color="white", fontsize=16, fontname=FONT)
         return
     
-    if state == "playing":
-        screen.blit("bg", (0, 0))
+    screen.blit("bg", (0, 0))
 
     for puddle in puddles:
         puddle.draw()
@@ -369,18 +380,25 @@ def draw():
         screen.blit("raindrop", (drop[0], drop[1]))
 
     level = LEVEL[level_index]
-    screen.draw.text(f"Level {level_index + 1}: {level['levels']}", (10, 5), color="white", fontsize=15, fontname=FONT)
-    screen.draw.text(f"Collected: {score}/{level['target']} Time: {int(time_left)}", (10, 30), color="white", fontsize=15, fontname=FONT)
+    screen.draw.text(f"Level {level_index + 1}: {level['levels']}", (10, 5), color="white", fontsize=12, fontname=FONT)
+    screen.draw.text(f"Collected: {score}/{level['target']} Time: {int(time_left)}", (10, 30), color="white", fontsize=12, fontname=FONT)
 
     if state == "level_complete":
-        screen.draw.text("Level complete! Press the SPACE bar for the next level", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=18, fontname=FONT)
+        overlay_screen()
+        screen.draw.text(level["level_complete"], center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=12, fontname=FONT)
     elif state == "won":
-        screen.draw.text("Your ant colony has survived! Press the SPACE bar to replay", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
         screen.blit("bg_win", (0, 0))
+        screen.draw.text("""Your colony managed to block off the final entrance to your home with dirt and stones.
+It was hard, who would’ve expected little guys to accomplish something bigger their size?
+The next 9 days the rainstorm ended. You survived. 
+You stepped outside the drying land to be grazed by the sun’s warmth, 
+to continue working to keep your survival.
+You live.""", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=12, fontname=FONT)
     elif state == "lost":
-        screen.draw.text("""Time is up! The rain is coming and the colony will be flooded. 
-        Press the SPACE bar to retry.""", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
+        overlay_screen()
+        screen.draw.text(level["fail"], center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=12, fontname=FONT)
     elif state == "drowned":
+        overlay_screen()
         screen.draw.text("""Ants are unable to swim in large puddles! The ant has drowned. 
         Press the SPACE bar to restart the level.""", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
 
