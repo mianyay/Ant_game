@@ -2,6 +2,7 @@
 You’re a harvester ant who collects things.
 
 ## Live demo
+Go to https://github.com/mianyay/Ant_game/releases/tag/v1 and download the exe file
 
 ## About
 Little Harvester Ant: The Great Flood is a timed-collect-a-thon game where you follow in the shoes of a harvester ant facing their Rainstorm. You have to help your colony survive by foraging resources before the great floods happens.
