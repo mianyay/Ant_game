@@ -35,9 +35,9 @@ Note: First ever hack jam project everrrrrrrr. We hope you enjoyed it! Pls leave
 - Game over effect: Lancer Splat Sound Effect (Deltarune) by ximert979 
 - Victory ending: Relaxing cinematic Pads by IdoBerg
 
-# Made With
+# Made using
 - Pygame!
-- 
+
 ## Screenshots
 <img width="745" height="508" alt="image" src="https://github.com/user-attachments/assets/3d70b55f-fe25-4519-aba5-fd4664861a18" />
 <img width="734" height="475" alt="image" src="https://github.com/user-attachments/assets/9b783b59-b15c-4cb6-9f04-53579a3af4d1" />
