@@ -17,19 +17,20 @@ FONT = "silkscreen"
 PUDDLE_SLOW = 0.1
 SMALL_PUDDLE = 42
 BIG_PUDDLE = 124
+DROWN_PIXEL = 40
 
 # Level settings
 
 LEVEL = [
      {"levels": "Emergency Stockpile Rush", "time": 60, "target": 20,
      "images": ["seed", "dead_insect", "dead_insect1", "fruit", "leaf"],
-     "rain": 30, "slow": 0.8, "puddles": 3, "big": 2},
+     "rain": 30, "slow": 0.8, "puddles": 3, "big": 2, "music": "level1_music", "rain_sound": "rain_1"},
     {"levels": "Deep Lockdown", "time": 45, "target": 15,
      "images": ["resin1", "resin2"],
-     "rain": 80, "slow": 0.6, "puddles": 4, "big": 3},
+     "rain": 80, "slow": 0.6, "puddles": 4, "big": 3, "music": "level2_music", "rain_sound": "rain_2"},
     {"levels": "The Final Seal", "time": 20, "target": 10,
      "images": ["pebble", "dirt", "sand"],
-     "rain": 160, "slow": 0.4, "puddles": 5, "big": 4},
+     "rain": 160, "slow": 0.4, "puddles": 5, "big": 4, "music": "level3_music", "rain_sound": "rain_3"},
 ]
 
 # resizes the sprites to a good size
@@ -39,7 +40,7 @@ def actor(name, size=32):
     actor._update_pos()
     return actor
 
-# make stuff
+# variables
 ant = actor("ant", 32)
 items = []
 rain = []
@@ -47,6 +48,9 @@ puddles = []
 big_puddles = []
 puddle_timer = 0
 story_fade = 0 
+current_music = None
+step_timer = 0
+current_rain = None
 level_index = 0
 score = 0
 time_left = 0
@@ -70,9 +74,7 @@ quit_button.center = (490, 400)
 def rainfall(amount):
     rain.clear()
     for i in range(amount):
-        rain.append([random.randint(0, WIDTH),
-                     random.randint(0, HEIGHT),
-                     random.randint(300, 500)])
+        rain.append([random.randint(0, WIDTH), random.randint(0, HEIGHT), random.randint(300, 500)])
 
 def spot(place):
     #spot that isnt near/where the ant is
@@ -86,8 +88,16 @@ def spot(place):
             continue
         return
 
+def water_ant(puddle):
+    if not ant.colliderect(puddle):
+        return False
+    ant_mask = pygame.mask.from_surface(ant._surf, 100)
+    offset = (ant.left - puddle.left, ant.top - puddle.top)
+    return puddle.mask.overlap_area(ant_mask, offset) >= DROWN_PIXEL
+
 def add_puddle(image, size, group):
     puddle = actor(image, size)
+    puddle.mask = pygame.mask.from_surface(puddle._surf, 100)
     spot(puddle)
     group.append(puddle)
 
@@ -102,6 +112,52 @@ def add_item():
         if not any(item.colliderect(big) for big in big_puddles):
             break
     items.append(item)
+
+def play_music(name):
+    global current_music
+    if current_music == name:
+        return
+    current_music = name
+    if name is None:
+        music.stop()
+    else:
+        music.set_volume(0.4)
+        music.play(name)   # loops until stopped
+
+def update_music():
+    if state in ("intro", "story"):
+        play_music("intro")
+    elif state == "playing":
+        play_music(LEVEL[level_index]["music"])
+    else:
+        play_music(None)
+
+def update_rain_sound():
+    global current_rain
+    rainy = LEVEL[level_index]["rain_sound"] if state == "playing" else None
+    if rainy == current_rain:
+        return
+    if current_rain is not None:
+        getattr(sounds, current_rain).stop()
+    current_rain = rainy
+    if rainy is not None:
+        rain_sound = getattr(sounds, rainy)
+        rain_sound.set_volume(0.3)
+        rain_sound.play(-1)   # loops forever
+
+# plays the win/lose sound
+def end_level(new_state):
+    global state, current_rain
+    state = new_state
+    play_music(None)
+    sounds.step.stop()
+    if current_rain is not None:
+        getattr(sounds, current_rain).stop()
+        current_rain = None
+    if new_state in ("lost", "drowned"):
+        sounds.lose.play()
+    else:
+        sounds.win.play()   
 
 def start_story():
     global state, story_fade
@@ -177,7 +233,10 @@ def on_mouse_move(pos):
             quit_button.image = "quit_button"
 
 def update(secs): #secs = time since the last frme
-    global score, time_left, spawn_timer, state, LEVEL, level_index, puddle_timer, story_fade
+    global step_timer, score, time_left, spawn_timer, state, LEVEL, level_index, puddle_timer, story_fade
+
+    update_music()
+    update_rain_sound()
 
     if state == "story":
         story_fade = min(1, story_fade + secs / 1) 
@@ -220,10 +279,20 @@ def update(secs): #secs = time since the last frme
     elif directionX < 0:
         ant.angle = 90
 
+    # footstep sounds
+    if directionX != 0 or directionY != 0:
+        step_timer -= secs
+        if step_timer <= 0:
+            sounds.step.play()
+            step_timer = 0.25
+    else:
+        step_timer = 0
+        sounds.step.stop()
+
 # drowing
     for big in big_puddles:
-        if big.collidepoint(ant.center):
-            state = "drowned"
+        if water_ant(big):
+            end_level("drowned")
             return
 
     ant_size()
@@ -232,7 +301,7 @@ def update(secs): #secs = time since the last frme
     time_left -= secs
     if time_left <= 0:
         time_left = 0
-        state = "lost"
+        end_level("lost")
         return
 
     # collect items 
@@ -240,13 +309,14 @@ def update(secs): #secs = time since the last frme
         if ant.colliderect(item):
             items.remove(item)
             score += 1
+            sounds.collect.play()
 
     # level complete
     if score >= LEVEL[level_index]["target"]:
         if level_index == len(LEVEL) - 1:
-            state = "won"
+            end_level("won")
         else:
-            state = "level_complete"
+            end_level("level_complete")
         return
 
     # spawn a new item every 1 seconds, max 8 on screen
@@ -274,7 +344,7 @@ def draw():
         return
 
     if state == "story":
-        screen.blit("bg_intro", (0, 0))
+        screen.blit("bg_intro_dark", (0, 0))
         screen.draw.text(introText, center=(WIDTH // 2, HEIGHT // 2), color="white",
                          fontsize=12, fontname=FONT, alpha=story_fade)
         if story_fade >= 1:
@@ -306,6 +376,7 @@ def draw():
         screen.draw.text("Level complete! Press the SPACE bar for the next level", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=18, fontname=FONT)
     elif state == "won":
         screen.draw.text("Your ant colony has survived! Press the SPACE bar to replay", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
+        screen.blit("bg_win", (0, 0))
     elif state == "lost":
         screen.draw.text("""Time is up! The rain is coming and the colony will be flooded. 
         Press the SPACE bar to retry.""", center=(WIDTH // 2, HEIGHT // 2), color="white", fontsize=15, fontname=FONT)
